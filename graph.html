@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>พื้นที่ใต้โค้งปกติมาตรฐาน (Z → Area)</title>
+    <style>
+      :root {
+        --bg1: #020617;
+        --bg2: #081226;
+        --neon-blue: #00e5ff;
+        --neon-pink: #ff3bd6;
+        --neon-green: #7affb2;
+        --muted: #9fb3c8;
+        --panel: rgba(255,255,255,0.03);
+        --glass: rgba(255,255,255,0.03);
+        --accent: var(--neon-blue);
+      }
+
+      @keyframes bgShift {
+        0% {background-position: 0% 50%}
+        50% {background-position: 100% 50%}
+        100% {background-position: 0% 50%}
+      }
+
+      /* prevent page scrolling (fixed page) */
+      html, body { height: 100%; margin: 0; overflow: hidden; }
+      body {
+        font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", Arial;
+        background: linear-gradient(120deg, var(--bg1), var(--bg2));
+        background-size: 300% 300%;
+        animation: bgShift 14s ease infinite;
+        color: #e6f7ff;
+        padding: 28px;
+      }
+
+      h1 { font-size: 22px; margin: 0 0 8px; color: var(--neon-pink);
+        text-shadow: 0 0 8px rgba(255,59,214,0.22), 0 0 18px rgba(0,229,255,0.08); }
+
+      p.lead { margin: 0 0 18px; color: var(--muted); }
+
+      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+      label { font-size: 14px; color: var(--muted); }
+
+      input[type="number"] {
+        padding: 10px;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 10px;
+        width: 160px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        color: #e9f9ff;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.5), 0 0 12px rgba(0,229,255,0.03) inset;
+        outline: none;
+      }
+
+      button {
+        background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+        color: #001018;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        box-shadow: 0 6px 20px rgba(255,59,214,0.12), 0 0 24px rgba(0,229,255,0.06);
+      }
+
+      .card {
+        margin-top: 14px;
+        padding: 16px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        border: 1px solid rgba(255,255,255,0.04);
+        box-shadow: 0 8px 40px rgba(2,4,12,0.6);
+        backdrop-filter: blur(6px) saturate(120%);
+      }
+
+      #canvasWrap {
+        width: 100%;
+        max-width: 820px;
+        margin-top: 12px;
+        border-radius: 12px;
+        padding: 12px;
+        background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(255,255,255,0.01));
+        border: 1px solid rgba(0,229,255,0.05);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 36px rgba(0,229,255,0.03) inset;
+      }
+
+      canvas {
+        width: 100%;
+        height: 340px;
+        background: linear-gradient(180deg, rgba(2,4,12,0.6), rgba(4,8,20,0.85));
+        border-radius: 10px;
+        display: block;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      }
+
+      .output { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; }
+
+      .stat {
+        padding: 12px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+        border: 1px solid rgba(255,255,255,0.03);
+        min-width: 180px;
+        color: #dff8ff;
+        box-shadow: 0 6px 22px rgba(0,0,0,0.6);
+      }
+
+      .muted { color: var(--muted); font-size: 13px; }
+
+      .note { margin-top: 8px; color: var(--neon-pink); text-shadow: 0 0 8px rgba(255,59,214,0.12); }
+
+      footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
+
+      /* team box (right-side, vertically centered) */
+      .team-box {
+        position: fixed;
+        right: 28px;               /* align with page padding */
+        top: 50%;                 /* center vertically */
+        transform: translateY(-50%);
+        width: 260px;
+        padding: 14px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        color: #e6f7ff;
+        border: 1px solid rgba(255,255,255,0.05);
+        box-shadow: 0 10px 30px rgba(2,4,12,0.6);
+        backdrop-filter: blur(6px) saturate(120%);
+        z-index: 1200;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        max-height: calc(100vh - 56px); /* avoid overflow on small viewports */
+        overflow: auto;
+      }
+
+      .team-box h3 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+        color: var(--neon-pink);
+      }
+
+      .team-box ul {
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .team-box li {
+        padding: 6px 0;
+        border-bottom: 1px dashed rgba(255,255,255,0.03);
+      }
+
+      .team-box li:last-child { border-bottom: none; }
+
+      @media (max-width: 900px) {
+        .team-box { display: none; }
+      }
+
+      @media (max-width: 560px) {
+        .row { flex-direction: column; align-items: stretch; }
+        input[type="number"] { width: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>พื้นที่ใต้โค้งปกติมาตรฐาน (Z → Area)</h1>
+    <p class="lead">
+      กรอกค่า <strong>Z</strong> (ค่าเป็นมาตรฐาน).
+      โปรแกรมจะคำนวณพื้นที่ใต้โค้งมาตรฐาน (จาก −∞ ถึง Z) และแรเงาพื้นที่บนกราฟให้.
+    </p>
+
+    <div class="card">
+      <div class="row">
+        <label for="zInput">ค่า Z:</label>
+        <input id="zInput" type="number" step="0.01" value="0" />
+        <label for="nInput" class="muted">จำนวนข้อมูล (ถ้าต้องการคำนวณจำนวนจากเปอร์เซ็นต์):</label>
+        <input id="nInput" type="number" step="1" min="1" placeholder="เช่น 1000" value="1000" />
+        <button id="calcBtn">คำนวณ & วาดกราฟ</button>
+      </div>
+
+      <div id="canvasWrap" style="margin-top: 12px">
+        <canvas id="chart" width="1000" height="340"></canvas>
+      </div>
+
+      <div class="output">
+        <div class="stat">
+          <div class="muted">พื้นที่ (Probability)</div>
+          <div id="areaVal" style="font-size: 18px; font-weight: 600">-</div>
+          <div class="muted" style="margin-top: 6px">เท่ากับเปอร์เซ็นต์: <span id="percentVal">-</span></div>
+        </div>
+
+        <div class="stat">
+          <div class="muted">ทิศทาง</div>
+          <div id="sideVal" style="font-size: 18px; font-weight: 600">-</div>
+          <div class="muted" style="margin-top: 6px">หมายเหตุเกี่ยวกับค่า Z และพื้นที่</div>
+        </div>
+
+        <div class="stat" id="countCard" style="display: none">
+          <div class="muted">จำนวนข้อมูล (ประมาณ)</div>
+          <div id="countVal" style="font-size: 18px; font-weight: 600">-</div>
+        </div>
+      </div>
+
+      <div id="note" class="note"></div>
+    </div>
+
+    <!-- team box: เพิ่มที่นี่ก่อน footer -->
+    <div class="team-box" aria-labelledby="teamTitle">
+      <h3 id="teamTitle">สมาชิกทีม</h3>
+      <ul>
+        <li>ชัชพล วรรณยิ่ง ม.6/3 เลขที่ 2</li>
+        <li>ภูสิคุณ รุจิดานันท์ ม.6/3 เลขที่ 3</li>
+        <li>นพวิชญ์ คิดชนะ ม.6/3 เลขที่ 6</li>
+        <li>ภูปัณ ปั้นทอง ม.6/3 เลขที่ 9</li>
+        <li>ผณินทร ลูทร่า ม.6/3 เลขที่ 16</li>
+      </ul>
+    </div>
+
+    <footer></footer>
+
+    <script>
+      /* ---- Normal CDF (erf approximation) ---- */
+      function erf(x) {
+        const a1 = 0.254829592;
+        const a2 = -0.284496736;
+        const a3 = 1.421413741;
+        const a4 = -1.453152027;
+        const a5 = 1.061405429;
+        const p = 0.3275911;
+        const sign = x >= 0 ? 1 : -1;
+        x = Math.abs(x);
+        const t = 1.0 / (1.0 + p * x);
+        const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+        return sign * y;
+      }
+
+      function normalCDF(z) {
+        return 0.5 * (1 + erf(z / Math.sqrt(2)));
+      }
+
+      /* ---- Canvas + drawing ---- */
+      const canvas = document.getElementById("chart");
+      const ctx = canvas.getContext("2d");
+
+      function drawNormal(z) {
+        const styles = getComputedStyle(document.documentElement);
+        const neonBlue = styles.getPropertyValue("--neon-blue").trim() || "#00e5ff";
+        const neonPink = styles.getPropertyValue("--neon-pink").trim() || "#ff3bd6";
+        const neonGreen = styles.getPropertyValue("--neon-green").trim() || "#7affb2";
+        const W = canvas.width;
+        const H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const xmin = -4, xmax = 4;
+        const samples = 1200;
+
+        function pdf(x) { return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI); }
+
+        const xs = [], ys = [];
+        let ymax = 0;
+        for (let i = 0; i <= samples; i++) {
+          const x = xmin + (xmax - xmin) * (i / samples);
+          const y = pdf(x);
+          xs.push(x); ys.push(y);
+          if (y > ymax) ymax = y;
+        }
+
+        const pad = 40;
+        const x2px = (x) => pad + ((x - xmin) / (xmax - xmin)) * (W - pad * 2);
+        const y2px = (y) => H - pad - (y / ymax) * (H - pad * 2);
+
+        // expose mapping for dragging logic
+        window._canvasMap = { xmin, xmax, pad, W, H, x2px, y2px };
+
+        // axis
+        ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.04)"; ctx.lineWidth = 1;
+        ctx.moveTo(pad, H - pad); ctx.lineTo(W - pad, H - pad); ctx.stroke();
+
+        // pdf line
+        ctx.save();
+        ctx.lineWidth = 3; ctx.strokeStyle = neonBlue; ctx.shadowColor = neonBlue; ctx.shadowBlur = 20;
+        ctx.beginPath();
+        for (let i = 0; i < xs.length; i++) {
+          const px = x2px(xs[i]), py = y2px(ys[i]);
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke(); ctx.restore();
+
+        // shade area from -inf to z
+        const zClip = Math.max(xmin, Math.min(xmax, z));
+        ctx.beginPath(); ctx.moveTo(x2px(xmin), H - pad);
+        for (let i = 0; i < xs.length; i++) {
+          if (xs[i] <= zClip + 1e-12) ctx.lineTo(x2px(xs[i]), y2px(ys[i])); else break;
+        }
+        ctx.lineTo(x2px(zClip), H - pad); ctx.closePath();
+        const grad = ctx.createLinearGradient(0, 0, W, 0);
+        grad.addColorStop(0, neonBlue + "22"); grad.addColorStop(0.6, neonPink + "0f");
+        ctx.fillStyle = grad; ctx.fill();
+
+        // outline shaded edge
+        ctx.beginPath(); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.moveTo(x2px(xmin), H - pad);
+        for (let i = 0; i < xs.length; i++) {
+          if (xs[i] <= zClip + 1e-12) ctx.lineTo(x2px(xs[i]), y2px(ys[i])); else break;
+        }
+        ctx.stroke();
+
+        // vertical neon line at z
+        ctx.beginPath(); ctx.setLineDash([8,6]); ctx.moveTo(x2px(zClip), H - pad);
+        ctx.lineTo(x2px(zClip), y2px(ymax * 0.98));
+        ctx.strokeStyle = neonPink; ctx.lineWidth = 2; ctx.shadowColor = neonPink; ctx.shadowBlur = 12; ctx.stroke();
+        ctx.setLineDash([]); ctx.shadowBlur = 0;
+
+        // ticks and labels
+        ctx.fillStyle = neonGreen; ctx.font = "13px system-ui, sans-serif";
+        const ticks = [-3,-2,-1,0,1,2,3];
+        for (const t of ticks) {
+          const px = x2px(t);
+          ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.04)";
+          ctx.moveTo(px, H - pad); ctx.lineTo(px, H - pad + 8); ctx.stroke();
+          ctx.fillStyle = neonGreen; ctx.shadowColor = neonGreen; ctx.shadowBlur = 8;
+          ctx.fillText(String(t), px - 8, H - pad + 22); ctx.shadowBlur = 0;
+        }
+
+        // canvas title
+        ctx.fillStyle = neonBlue; ctx.font = "14px system-ui, sans-serif"; ctx.shadowColor = neonBlue; ctx.shadowBlur = 8;
+        ctx.fillText("Standard Normal PDF (Z)", pad + 2, 22); ctx.shadowBlur = 0;
+      }
+
+      /* ---- UI handlers (single declaration) ---- */
+      const zInput = document.getElementById("zInput");
+      const nInput = document.getElementById("nInput");
+      const calcBtn = document.getElementById("calcBtn");
+      const areaVal = document.getElementById("areaVal");
+      const percentVal = document.getElementById("percentVal");
+      const sideVal = document.getElementById("sideVal");
+      const note = document.getElementById("note");
+      const countCard = document.getElementById("countCard");
+      const countVal = document.getElementById("countVal");
+
+      function runCalc() {
+        const rawZ = Number(zInput.value);
+        if (Number.isNaN(rawZ)) return;
+        const z = rawZ;
+        const area = normalCDF(z); // P(Z <= z)
+        const pct = area * 100;
+
+        areaVal.textContent = area.toFixed(4);
+        percentVal.textContent = pct.toFixed(2) + " %";
+
+        if (z < 0 && area <= 0.5) {
+          sideVal.textContent = `Z เป็นลบ (พื้นที่ < 0.5)`;
+          note.textContent = `หมายเหตุ: เนื่องจาก Z เป็นลบ พื้นที่จาก −∞ ถึง Z จะอยู่ทางซ้ายของศูนย์และมีค่าน้อยกว่าหรือเท่ากับ 0.5`;
+          note.style.color = getComputedStyle(document.documentElement).getPropertyValue('--neon-blue').trim();
+        } else if (z < 0) {
+          sideVal.textContent = `Z เป็นลบ — พื้นที่ (ซ้ายของศูนย์)`;
+          note.textContent = "";
+        } else if (z === 0) {
+          sideVal.textContent = `Z = 0 (พื้นที่ = 0.5)`;
+          note.textContent = "";
+        } else { // z > 0
+          sideVal.textContent = `Z เป็นบวก (พื้นที่ > 0.5)`;
+          note.textContent = `หมายเหตุ: เนื่องจาก Z เป็นบวก พื้นที่จาก Z ถึง ∞ จะอยู่ทางขวาของศูนย์และมีค่ามากกว่าหรือเท่ากับ 0.5`;
+          note.style.color = getComputedStyle(document.documentElement).getPropertyValue('--neon-green').trim();
+        }
+
+        const N = Number(nInput.value);
+        if (!Number.isNaN(N) && N > 0) {
+          const count = Math.round(area * N);
+          countCard.style.display = "block";
+          countVal.textContent = `${count.toLocaleString()} คน (≈)`;
+        } else {
+          countCard.style.display = "none";
+        }
+
+        drawNormal(z);
+      }
+
+      // draggable vertical Z line: click near line and drag, or click anywhere to set Z
+      (function enableDrag() {
+        let isDragging = false;
+        const dragThreshold = 12; // in canvas pixels
+
+        function clientXToZ(clientX) {
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;           // account for CSS scaling
+          const mxCanvas = (clientX - rect.left) * scaleX;    // convert to canvas-space x
+          const m = window._canvasMap;
+          if (!m) return null;
+          const t = (mxCanvas - m.pad) / (m.W - m.pad * 2);
+          return m.xmin + t * (m.xmax - m.xmin);
+        }
+
+        function cssToCanvasX(clientX) {
+          const rect = canvas.getBoundingClientRect();
+          return (clientX - rect.left) * (canvas.width / rect.width);
+        }
+
+        canvas.addEventListener('mousedown', (ev) => {
+          const m = window._canvasMap;
+          if (!m) return;
+          const mxCanvas = cssToCanvasX(ev.clientX);
+          const currentZ = Number(zInput.value) || 0;
+          const lineX = m.x2px(Math.max(m.xmin, Math.min(m.xmax, currentZ)));
+          if (Math.abs(mxCanvas - lineX) <= dragThreshold) {
+            isDragging = true;
+            canvas.style.cursor = 'ew-resize';
+          } else {
+            const newZ = clientXToZ(ev.clientX);
+            if (newZ !== null) {
+              zInput.value = newZ.toFixed(2);
+              runCalc();
+            }
+          }
+        });
+
+        window.addEventListener('mousemove', (ev) => {
+          const m = window._canvasMap;
+          if (!m) return;
+          const mxCanvas = cssToCanvasX(ev.clientX);
+          const currentZ = Number(zInput.value) || 0;
+          const lineX = m.x2px(Math.max(m.xmin, Math.min(m.xmax, currentZ)));
+          // hover cursor (use canvas-space comparison)
+          canvas.style.cursor = (Math.abs(mxCanvas - lineX) <= dragThreshold) ? 'ew-resize' : 'default';
+
+          if (isDragging) {
+            const newZ = clientXToZ(ev.clientX);
+            if (newZ !== null) {
+              const clamped = Math.max(m.xmin, Math.min(m.xmax, newZ));
+              zInput.value = clamped.toFixed(2);
+              runCalc();
+            }
+          }
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (isDragging) {
+            isDragging = false;
+            canvas.style.cursor = 'default';
+          }
+        });
+
+        // touch support
+        canvas.addEventListener('touchstart', (ev) => {
+          const t = ev.touches[0];
+          if (!t) return;
+          const m = window._canvasMap;
+          if (!m) return;
+          const mxCanvas = cssToCanvasX(t.clientX);
+          const currentZ = Number(zInput.value) || 0;
+          const lineX = m.x2px(Math.max(m.xmin, Math.min(m.xmax, currentZ)));
+          if (Math.abs(mxCanvas - lineX) <= dragThreshold) {
+            isDragging = true;
+            canvas.style.cursor = 'ew-resize';
+            ev.preventDefault();
+          } else {
+            const newZ = clientXToZ(t.clientX);
+            if (newZ !== null) {
+              zInput.value = newZ.toFixed(2);
+              runCalc();
+            }
+          }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (ev) => {
+          if (!isDragging) return;
+          const t = ev.touches[0];
+          if (!t) return;
+          const newZ = clientXToZ(t.clientX);
+          const m = window._canvasMap;
+          if (!m || newZ === null) return;
+          const clamped = Math.max(m.xmin, Math.min(m.xmax, newZ));
+          zInput.value = clamped.toFixed(2);
+          runCalc();
+          ev.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+          if (isDragging) {
+            isDragging = false;
+            canvas.style.cursor = 'default';
+          }
+        });
+      })();
+
+      // initial draw + events
+      drawNormal(Number(zInput.value));
+      runCalc();
+
+      calcBtn.addEventListener("click", runCalc);
+      zInput.addEventListener("keydown", (e) => { if (e.key === "Enter") runCalc(); });
+      nInput.addEventListener("keydown", (e) => { if (e.key === "Enter") runCalc(); });
+    </script>
+  </body>
+</html>
